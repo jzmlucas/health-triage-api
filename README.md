@@ -1,69 +1,227 @@
-# Sistema de Análise de Sintomas em pacientes
+# Health Triage API
 
-Aplicação backend dividida em microserviços para cadastro de usuários, recepção de sintomas e geração de diagnósticos preliminares.
+Backend de triagem inicial de sintomas, desenvolvido em Java com Spring Boot e organizado em três microsserviços. A API recebe sintomas informados pelo usuário, encaminha a solicitação a um modelo local via Ollama e retorna uma orientação preliminar. Também oferece cadastro e autenticação de usuários, gerenciamento de conta, recuperação de senha por e-mail e consulta de códigos CID-10.
 
-## Estrutura do projeto
+> **Aviso:** esta aplicação é um projeto de portfólio e fornece apenas conteúdo informativo. A resposta da IA não é diagnóstico médico, não substitui avaliação profissional e não deve ser usada para decisões clínicas ou emergências.
 
-- `user-service`: responsável pelo cadastro e gerenciamento de usuários
-- `symptomservice`: recebe os sintomas, valida o usuário e coordena a comunicação entre os serviços
-- `ai-service`: processa os sintomas e retorna uma resposta de diagnóstico
+## Objetivos do projeto
 
-## Portas padrao
+- Praticar arquitetura de microsserviços e comunicação entre APIs Spring Boot.
+- Implementar autenticação JWT e proteção de rotas.
+- Validar e encaminhar solicitações de sintomas a um modelo de linguagem.
+- Consultar códigos e descrições CID-10 em um serviço público de referência.
+- Demonstrar configuração por variáveis de ambiente, testes automatizados e documentação de API.
 
-- `user-service`: `8080`
-- `symptomservice`: `8081`
-- `ai-service`: `8082`
+## Arquitetura
 
-## Tecnologias utilizadas
+```mermaid
+flowchart LR
+    C[Cliente] --> U[user-service :8080]
+    C --> S[symptomservice :8081]
+    S --> U
+    S --> A[ai-service :8082]
+    A --> O[Ollama local]
+    A --> CID[API externa de referência CID-10]
+    U --> DB[(PostgreSQL)]
+    U --> SMTP[Servidor SMTP opcional]
+```
 
-- Java 25
-- Spring Boot
-- Spring Web MVC
-- Spring Data JPA
+| Serviço | Responsabilidade | Porta padrão |
+|---|---|---:|
+| `user-service` | Cadastro, login, perfil, troca e recuperação de senha | `8080` |
+| `symptomservice` | Recebe sintomas, valida o usuário e coordena o pedido de orientação | `8081` |
+| `ai-service` | Gera resposta preliminar com Ollama e consulta códigos CID-10 | `8082` |
+
+Fluxo principal: o cliente cria uma conta e recebe um JWT; envia sintomas ao `symptomservice`; o serviço valida a identidade e encaminha o pedido ao `ai-service`; por fim, a resposta informativa é devolvida ao cliente.
+
+## Funcionalidades
+
+- Cadastro e login com emissão de JWT.
+- Consulta e atualização da própria conta, além de remoção protegida.
+- Alteração de senha autenticada.
+- Solicitação e confirmação de redefinição de senha por link de uso único enviado por e-mail.
+- Recepção e validação de uma lista de sintomas.
+- Orientação preliminar gerada por Ollama, com instruções de segurança para evitar que a resposta seja apresentada como diagnóstico definitivo.
+- Consulta de código CID-10 e descrição.
+- Proteção de rotas, validação de entrada, respostas de erro controladas, CORS configurável e limitação de requisições.
+
+## Tecnologias
+
+- Java 25 e Maven Wrapper
+- Spring Boot, Spring Web e Spring Data JPA
+- Spring Security e JWT
 - PostgreSQL
-- Lombok
-- Ollama
+- Ollama (modelo local)
+- JUnit e Spring Boot Test
 
-## Como executar
+## Rotas principais
 
-Inicie cada serviço em um terminal separado, à partir da raiz de cada módulo.
-Utilize o Postman para gerar os sintomas do paciente simulado.
+As rotas abaixo usam JSON. Rotas protegidas requerem `Authorization: Bearer <token>`.
 
-```bash
-./mvnw spring-boot:run
+### `user-service` — `http://localhost:8080`
+
+| Método | Rota | Acesso | Descrição |
+|---|---|---|---|
+| `POST` | `/auth/register` | Público | Cria uma conta |
+| `POST` | `/auth/login` | Público | Autentica e retorna token |
+| `POST` | `/auth/change-password` | JWT | Altera a senha da conta autenticada |
+| `POST` | `/auth/forgot-password` | Público | Solicita link de recuperação |
+| `POST` | `/auth/reset-password` | Público, com token de recuperação | Define uma nova senha |
+| `GET` | `/users/{id}` | JWT, apenas a própria conta | Consulta perfil |
+| `PUT` | `/users/{id}` | JWT, apenas a própria conta | Atualiza perfil |
+| `DELETE` | `/users/{id}` | JWT, apenas a própria conta | Remove conta |
+
+### `symptomservice` — `http://localhost:8081`
+
+| Método | Rota | Acesso | Descrição |
+|---|---|---|---|
+| `POST` | `/symptoms` | JWT | Valida a conta e solicita orientação preliminar |
+
+### `ai-service` — `http://localhost:8082`
+
+| Método | Rota | Acesso | Descrição |
+|---|---|---|---|
+| `POST` | `/ai/diagnose` | JWT | Gera resposta preliminar para os sintomas enviados |
+| `GET` | `/ai/cid/{codigo}` | JWT | Consulta código CID-10 |
+
+## Executar localmente
+
+### Requisitos
+
+- JDK 25 (versão configurada nos arquivos Maven)
+- PostgreSQL
+- [Ollama](https://ollama.com/) instalado e em execução, com um modelo baixado
+- PowerShell no Windows; em outros sistemas, use o wrapper Maven correspondente (`./mvnw`)
+
+Crie o banco `health_ai_userservice`. Baixe um modelo compatível no Ollama, por exemplo `ollama pull llama3.2:3b`.
+
+### Iniciar os serviços
+
+Abra um terminal para cada módulo e configure as variáveis necessárias. O mesmo segredo JWT deve ser usado pelos três serviços.
+
+Exemplo para o `user-service` no PowerShell:
+
+```powershell
+$env:JWT_SECRET = '<segredo-aleatorio-com-pelo-menos-32-bytes>'
+$env:DATABASE_URL = 'jdbc:postgresql://localhost:5432/health_ai_userservice'
+$env:DB_USERNAME = 'postgres'
+$env:DB_PASSWORD = '<senha-do-postgres>'
+cd user-service
+.\mvnw.cmd spring-boot:run
 ```
 
-## Como testar
+Em outros terminais, a partir da raiz do repositório:
 
-Crie um usuário utilizando o método `POST` na URL `http://localhost:8080/users` e envie um JSON
-
-```json
-{
-  "name": "Teste",
-  "email": "teste@local.com"
-}
+```powershell
+$env:JWT_SECRET = '<o-mesmo-segredo-forte>'
+cd symptomservice
+.\mvnw.cmd spring-boot:run
 ```
 
-Envie o sistoma utilizando o método `POST` na URL `http://localhost:8081/symptoms` e envie um JSON
-
-```json
-{
-  "userId": 1,
-  "symptoms": ["tosse"]
-}
+```powershell
+$env:JWT_SECRET = '<o-mesmo-segredo-forte>'
+$env:OLLAMA_BASE_URL = 'http://localhost:11434'
+$env:OLLAMA_MODEL = 'llama3.2:3b'
+cd ai-service
+.\mvnw.cmd spring-boot:run
 ```
 
-Também é possível testar apenas o diagnóstico utilizando método `POST` na URL `http://localhost:8082/ai/diagnos` com o JSON
+Consulte os arquivos `application.properties` de cada módulo para outras variáveis opcionais, como origens CORS, endereço dos serviços e configuração SMTP. Não coloque segredos reais no código, no README ou em commits.
 
-```json
-{
-  "symptoms": ["tosse"]
-}
+## Exemplos de uso
+
+### 1. Criar conta
+
+```http
+POST http://localhost:8080/auth/register
+Content-Type: application/json
+
+{"name":"Ana","email":"ana@example.com","password":"UmaSenhaForte!2026"}
 ```
 
-## Fluxo da aplicacao
+Use o `accessToken` devolvido no login para as próximas chamadas:
 
-1. O usuário é cadastrado no `user-service`
-2. Os sintomas são enviados ao `symptomservice`
-3. O `symptomservice` consulta o servico de diagnostico
-4. A resposta consolidada e retornada ao cliente
+```http
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{"email":"ana@example.com","password":"UmaSenhaForte!2026"}
+```
+
+### 2. Enviar sintomas
+
+```http
+POST http://localhost:8081/symptoms
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{"userId":1,"symptoms":["febre há dois dias","tosse"]}
+```
+
+A resposta é uma orientação gerada por IA e deve ser interpretada apenas como informação preliminar.
+
+### 3. Consultar código CID-10
+
+```http
+GET http://localhost:8082/ai/cid/E11
+Authorization: Bearer <accessToken>
+```
+
+A consulta usa a API de referência da AlicerceLabs, que documenta uma cota anônima limitada. Trata-se de uma fonte privada de referência, não de uma API oficial do Ministério da Saúde; a disponibilidade e os limites dependem do serviço externo.
+
+## Provedores de IA
+
+No estado atual, o fluxo implementado usa **Ollama local**. Integrações com Anthropic Claude e OpenAI/ChatGPT não estão ativas. Como os pedidos contêm dados de saúde potencialmente sensíveis, o envio desses dados a provedores externos exige configuração e autorização explícitas, além de avaliação de privacidade e segurança.
+
+## Segurança e privacidade
+
+- Senhas protegidas com BCrypt; o cadastro aplica requisito mínimo de tamanho.
+- JWT assinado com HMAC e validade curta (15 minutos por padrão); os serviços validam o token.
+- Rotas de conta limitadas à identidade autenticada.
+- Tokens de redefinição expiram, são de uso único e somente seu hash é armazenado.
+- Dados de entrada são validados e tamanhos de listas/textos são limitados.
+- Respostas de erro não devem expor segredos internos.
+- A aplicação não mantém histórico de sintomas ou respostas.
+- Rate limiting atual é em memória e por instância; em ambiente com múltiplas réplicas, use um limitador distribuído no gateway ou Redis.
+
+Para qualquer ambiente exposto, configure TLS, firewall, CORS restrito, segredos fortes fora do repositório, banco protegido, logs sem conteúdo clínico e controles de acesso adequados. A configuração local de desenvolvimento não representa uma implantação de produção pronta.
+
+## Testes
+
+Execute os testes de cada serviço:
+
+```powershell
+cd user-service
+.\mvnw.cmd test
+
+cd ..\symptomservice
+.\mvnw.cmd test
+
+cd ..\ai-service
+.\mvnw.cmd test
+```
+
+Os testes automatizados cobrem inicialização dos módulos e, no `user-service`, fluxos de cadastro, login, acesso ao perfil próprio, bloqueio de acesso a outra conta e alteração de senha. A execução automatizada não substitui testes de integração com PostgreSQL, Ollama, SMTP e a API CID externa.
+
+## Estrutura do repositório
+
+```text
+.
+├── user-service/       # identidade, autenticação e contas
+├── symptomservice/     # entrada e coordenação dos sintomas
+├── ai-service/         # orientação preliminar e consulta CID-10
+├── README.md
+└── .gitignore
+```
+
+## Melhorias futuras
+
+- Adicionar documentação OpenAPI/Swagger e coleção de chamadas de exemplo.
+- Criar ambiente local reproduzível com Docker Compose.
+- Adotar rate limiting distribuído e observabilidade sem registrar dados clínicos.
+- Expandir testes de integração e contratos entre serviços.
+- Implementar provedores externos opcionais após definir salvaguardas para dados sensíveis.
+
+## Licença
+
+Nenhuma licença foi informada neste repositório. Adicione um arquivo `LICENSE` antes de permitir reutilização formal do código.

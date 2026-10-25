@@ -21,6 +21,10 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    // Nullable only to permit a safe rolling upgrade of accounts created before authentication existed.
+    @Column(name = "password_hash")
+    private String passwordHash;
+
     public User() {
     }
 
@@ -53,4 +57,7 @@ public class User {
     public void setEmail(String email) {
         this.email = email;
     }
+
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
 }

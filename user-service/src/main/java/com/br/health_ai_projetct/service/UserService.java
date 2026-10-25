@@ -8,8 +8,6 @@ import com.br.health_ai_projetct.model.User;
 import com.br.health_ai_projetct.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 @Service
 public class UserService {
 
@@ -17,25 +15,6 @@ public class UserService {
 
     public UserService(UserRepository repository) {
         this.repository = repository;
-    }
-
-    public List<UserResponseDTO> getUsers() {
-        return repository.findAll()
-                .stream()
-                .map(this::toResponseDTO)
-                .toList();
-    }
-
-    public UserResponseDTO createUser(UserRequestDTO dto) {
-        if (repository.existsByEmail(dto.getEmail())) {
-            throw new DuplicateEmailException("Email ja cadastrado");
-        }
-
-        User user = new User();
-        user.setName(dto.getName());
-        user.setEmail(dto.getEmail());
-
-        return toResponseDTO(repository.save(user));
     }
 
     public UserResponseDTO getUserById(Long id) {
@@ -49,12 +28,13 @@ public class UserService {
         User user = repository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("Usuario nao encontrado"));
 
-        if (!user.getEmail().equals(dto.getEmail()) && repository.existsByEmail(dto.getEmail())) {
+        String email = dto.getEmail().trim().toLowerCase(java.util.Locale.ROOT);
+        if (!user.getEmail().equalsIgnoreCase(email) && repository.existsByEmailIgnoreCase(email)) {
             throw new DuplicateEmailException("Email ja cadastrado");
         }
 
         user.setName(dto.getName());
-        user.setEmail(dto.getEmail());
+        user.setEmail(email);
 
         return toResponseDTO(repository.save(user));
     }
