@@ -31,7 +31,7 @@ class DiagnosisServiceTests {
         server.expect(requestTo("http://ollama.test/api/chat"))
                 .andExpect(method(POST))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("SAMU 192")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"format\":\"json\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"required\":[\"condition\",\"risk\",\"recommendation\",\"red_flags\",\"questions\"]")))
                 .andRespond(withSuccess(response, MediaType.APPLICATION_JSON));
 
         DiagnosisService service = new DiagnosisService(rest, "http://ollama.test", "test-model", mapper);

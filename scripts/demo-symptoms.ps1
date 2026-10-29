@@ -4,6 +4,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 if ($Symptoms.Count -eq 0 -or @($Symptoms | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count -ne $Symptoms.Count) {
     throw 'Informe pelo menos um sintoma não vazio.'
 }

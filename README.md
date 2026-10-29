@@ -138,7 +138,7 @@ Para demonstrar apenas a orientação de sintomas com dados fictícios e saída 
 
 O script cria uma conta temporária, envia os sintomas pelo `symptomservice`, exibe modelo, risco, possibilidades, recomendação, sinais de alerta e perguntas, e remove a conta ao terminar. A resposta é informativa e pode variar entre execuções.
 
-Para uma demonstração interativa, dê duplo clique em [`testar-sintomas.cmd`](testar-sintomas.cmd) na raiz do projeto. A janela pergunta **“O que você está sentindo?”**; digite uma frase e pressione Enter. O atalho chama o mesmo fluxo real de sintomas. Mantenha Docker Desktop, Ollama e os três serviços em execução antes de abri-lo. Não informe dados pessoais na demonstração.
+Para uma demonstração interativa, dê duplo clique em [`testar-sintomas.cmd`](testar-sintomas.cmd) na raiz do projeto. O atalho inicia os três serviços se estiverem parados e então pergunta **“O que você está sentindo?”**; digite uma frase e pressione Enter. Docker Desktop e Ollama precisam estar em execução. Não informe dados pessoais na demonstração.
 
 ### Iniciar os serviços
 
