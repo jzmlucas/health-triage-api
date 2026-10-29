@@ -138,6 +138,8 @@ Para demonstrar apenas a orientação de sintomas com dados fictícios e saída 
 
 O script cria uma conta temporária, envia os sintomas pelo `symptomservice`, exibe modelo, risco, possibilidades, recomendação, sinais de alerta e perguntas, e remove a conta ao terminar. A resposta é informativa e pode variar entre execuções.
 
+Para uma demonstração interativa, dê duplo clique em [`testar-sintomas.cmd`](testar-sintomas.cmd) na raiz do projeto. A janela pergunta **“O que você está sentindo?”**; digite uma frase e pressione Enter. O atalho chama o mesmo fluxo real de sintomas. Mantenha Docker Desktop, Ollama e os três serviços em execução antes de abri-lo. Não informe dados pessoais na demonstração.
+
 ### Iniciar os serviços
 
 Abra um terminal para cada módulo e configure as variáveis necessárias. O mesmo segredo JWT deve ser usado pelos três serviços.
@@ -267,6 +269,7 @@ Os testes Maven cobrem inicialização dos módulos e, no `user-service`, fluxos
 ├── symptomservice/     # entrada e coordenação dos sintomas
 ├── ai-service/         # orientação preliminar e consulta CID-10
 ├── scripts/            # inicialização local, teste completo e demonstração de sintomas
+├── testar-sintomas.cmd # atalho interativo para digitar sintomas
 ├── README.md
 └── .gitignore
 ```
