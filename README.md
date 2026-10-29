@@ -128,6 +128,16 @@ Para validar o fluxo completo depois que as três janelas estiverem prontas:
 
 O teste cria uma conta temporária, faz login, consulta o perfil, solicita orientação com `qwen3.5:4b`, consulta CID-10, verifica bloqueio de acesso a outra conta e remove a conta temporária. A consulta CID depende da API externa da AlicerceLabs. Para parar os serviços, pressione `Ctrl+C` em cada janela; para parar apenas o banco local, execute `docker stop health-triage-postgres`.
 
+Para demonstrar apenas a orientação de sintomas com dados fictícios e saída legível:
+
+```powershell
+.\scripts\demo-symptoms.ps1
+# Ou escolha sintomas fictícios:
+.\scripts\demo-symptoms.ps1 -Symptoms @('dor de cabeça leve há duas horas', 'tontura')
+```
+
+O script cria uma conta temporária, envia os sintomas pelo `symptomservice`, exibe modelo, risco, possibilidades, recomendação, sinais de alerta e perguntas, e remove a conta ao terminar. A resposta é informativa e pode variar entre execuções.
+
 ### Iniciar os serviços
 
 Abra um terminal para cada módulo e configure as variáveis necessárias. O mesmo segredo JWT deve ser usado pelos três serviços.
@@ -256,7 +266,7 @@ Os testes Maven cobrem inicialização dos módulos e, no `user-service`, fluxos
 ├── user-service/       # identidade, autenticação e contas
 ├── symptomservice/     # entrada e coordenação dos sintomas
 ├── ai-service/         # orientação preliminar e consulta CID-10
-├── scripts/            # inicialização local e teste de ponta a ponta
+├── scripts/            # inicialização local, teste completo e demonstração de sintomas
 ├── README.md
 └── .gitignore
 ```

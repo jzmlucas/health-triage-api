@@ -1,4 +1,4 @@
-param(
+﻿param(
     [int]$UserPort = 8083
 )
 
@@ -25,7 +25,7 @@ try {
     Write-Host 'Perfil: OK'
 
     $request = @{ userId = $userId; symptoms = @('dor de cabeça leve há duas horas') } | ConvertTo-Json
-    $result = Invoke-RestMethod -Uri 'http://localhost:8081/symptoms' -Method Post -Headers $headers -ContentType 'application/json' -Body $request -TimeoutSec 180
+    $result = Invoke-RestMethod -Uri 'http://localhost:8081/symptoms' -Method Post -Headers $headers -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($request)) -TimeoutSec 180
     $analysis = $result.diagnosis | ConvertFrom-Json
     if ($result.model -ne 'qwen3.5:4b' -or -not $analysis.condition -or $analysis.risk -notin @('BAIXO', 'MEDIO', 'ALTO') -or -not $analysis.recommendation) {
         throw 'Resposta de triagem incompleta ou modelo incorreto.'
