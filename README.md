@@ -1,16 +1,31 @@
 # Health Triage API
 
+[![Java 25](https://img.shields.io/badge/Java-25-orange?style=for-the-badge&logo=openjdk)](https://openjdk.org/projects/jdk/25/)
+[![Spring Boot 4.0.5](https://img.shields.io/badge/Spring%20Boot-4.0.5-brightgreen?style=for-the-badge&logo=springboot)](https://spring.io/projects/spring-boot)
+[![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
+[![Ollama](https://img.shields.io/badge/Ollama-qwen3.5%3A4b-black?style=for-the-badge)](https://ollama.com/library/qwen3.5)
+[![Security](https://img.shields.io/badge/Security-JWT-black?style=for-the-badge&logo=jsonwebtokens)](https://jwt.io/)
+[![Tests](https://img.shields.io/badge/Tests-10%20passing-25A162?style=for-the-badge&logo=junit5)](#testes)
+[![Docker](https://img.shields.io/badge/Docker-PostgreSQL%20local-2496ED?style=for-the-badge&logo=docker)](#inicialização-rápida-no-windows)
+
 Backend de triagem inicial de sintomas, desenvolvido em Java com Spring Boot e organizado em três microsserviços. Este repositório contém apenas APIs, sem interface web. A API recebe sintomas informados pelo usuário, encaminha a solicitação a um modelo local via Ollama e retorna uma orientação preliminar. Também oferece cadastro e autenticação de usuários, gerenciamento de conta, recuperação de senha por e-mail e consulta de códigos CID-10.
 
 > **Aviso:** esta aplicação é um projeto de portfólio e fornece apenas conteúdo informativo. A resposta da IA não é diagnóstico médico, não substitui avaliação profissional e não deve ser usada para decisões clínicas ou emergências.
 
-## Objetivos do projeto
+## Em 30 segundos
 
-- Praticar arquitetura de microsserviços e comunicação entre APIs Spring Boot.
-- Implementar autenticação JWT e proteção de rotas.
-- Validar e encaminhar solicitações de sintomas a um modelo de linguagem.
-- Consultar códigos e descrições CID-10 em um serviço público de referência.
-- Demonstrar configuração por variáveis de ambiente, testes automatizados e documentação de API.
+- Três APIs Spring Boot 4: usuários, sintomas e orientação preliminar.
+- PostgreSQL 16 para contas; JWT para autenticação entre os serviços.
+- Ollama local com `qwen3.5:4b` como modelo padrão do `ai-service`.
+- Consulta CID-10 por uma API externa de referência.
+- Inicialização local por PowerShell e Docker Desktop; 10 testes Maven e um teste de ponta a ponta.
+
+## Links
+
+- [Repositório no GitHub](https://github.com/jzmlucas/health-triage-api)
+- [Inicialização local](#inicialização-rápida-no-windows)
+- [Rotas principais](#rotas-principais)
+- [Testes](#testes)
 
 ## Arquitetura
 
@@ -34,7 +49,7 @@ flowchart LR
 
 Fluxo principal: o cliente cria uma conta e recebe um JWT; envia sintomas ao `symptomservice`; o serviço valida a identidade e encaminha o pedido ao `ai-service`; por fim, a resposta informativa é devolvida ao cliente.
 
-## Funcionalidades
+## O que o sistema entrega
 
 - Cadastro e login com emissão de JWT.
 - Consulta e atualização da própria conta, além de remoção protegida.
@@ -45,14 +60,14 @@ Fluxo principal: o cliente cria uma conta e recebe um JWT; envia sintomas ao `sy
 - Consulta de código CID-10 e descrição.
 - Proteção de rotas, validação de entrada, respostas de erro controladas, CORS configurável e limitação de requisições.
 
-## Tecnologias
+## Stack técnica
 
-- Java 25 e Maven Wrapper
-- Spring Boot, Spring Web e Spring Data JPA
-- Spring Security e JWT
-- PostgreSQL 16 (ou Docker Desktop para o banco local isolado)
-- Ollama (modelo local)
-- JUnit e Spring Boot Test
+- Java 25 e Maven Wrapper.
+- Spring Boot 4.0.5, Spring Web MVC e Spring Data JPA.
+- Spring Security e JWT com JJWT.
+- PostgreSQL 16; Docker Desktop para o banco local isolado.
+- Ollama local com `qwen3.5:4b` por padrão.
+- JUnit 5, Mockito e Spring Boot Test.
 
 ## Rotas principais
 
@@ -145,6 +160,19 @@ cd ai-service
 ```
 
 Se `8080` estiver ocupada, defina `$env:SERVER_PORT = '8083'` no `user-service` e `$env:USER_SERVICE_URL = 'http://localhost:8083'` no `symptomservice`. Consulte os arquivos `application.properties` de cada módulo para outras variáveis opcionais, como origens CORS, endereço dos serviços e configuração SMTP. Não coloque segredos reais no código, no README ou em commits.
+
+### Configuração essencial
+
+| Variável | Serviço | Uso |
+|---|---|---|
+| `JWT_SECRET` | Todos | Mesmo segredo HMAC, com pelo menos 32 bytes em UTF-8 |
+| `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD` | `user-service` | Conexão PostgreSQL |
+| `SERVER_PORT` | `user-service` | Porta HTTP; padrão `8080`, script local usa `8083` |
+| `USER_SERVICE_URL` | `symptomservice` | Endereço do `user-service` |
+| `OLLAMA_BASE_URL`, `OLLAMA_MODEL` | `ai-service` | Endereço do Ollama e modelo; padrão `qwen3.5:4b` |
+| `APP_MAIL_ENABLED`, `SMTP_HOST`, `SMTP_PORT` | `user-service` | Envio opcional de e-mail de recuperação |
+
+O script local cria `.env.local` com as credenciais necessárias. Esse arquivo é ignorado pelo Git.
 
 ## Exemplos de uso
 
@@ -244,3 +272,9 @@ Os testes Maven cobrem inicialização dos módulos e, no `user-service`, fluxos
 ## Licença
 
 Nenhuma licença foi informada neste repositório. Adicione um arquivo `LICENSE` antes de permitir reutilização formal do código.
+
+## Autor
+
+Desenvolvido por [Lucas Joly](https://github.com/jzmlucas).
+
+[LinkedIn](https://linkedin.com/in/jzmlucas) | [GitHub](https://github.com/jzmlucas)
