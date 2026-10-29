@@ -1,6 +1,6 @@
 # Health Triage API
 
-Backend de triagem inicial de sintomas, desenvolvido em Java com Spring Boot e organizado em três microsserviços. A API recebe sintomas informados pelo usuário, encaminha a solicitação a um modelo local via Ollama e retorna uma orientação preliminar. Também oferece cadastro e autenticação de usuários, gerenciamento de conta, recuperação de senha por e-mail e consulta de códigos CID-10.
+Backend de triagem inicial de sintomas, desenvolvido em Java com Spring Boot e organizado em três microsserviços. Este repositório contém apenas APIs, sem interface web. A API recebe sintomas informados pelo usuário, encaminha a solicitação a um modelo local via Ollama e retorna uma orientação preliminar. Também oferece cadastro e autenticação de usuários, gerenciamento de conta, recuperação de senha por e-mail e consulta de códigos CID-10.
 
 > **Aviso:** esta aplicação é um projeto de portfólio e fornece apenas conteúdo informativo. A resposta da IA não é diagnóstico médico, não substitui avaliação profissional e não deve ser usada para decisões clínicas ou emergências.
 
@@ -50,7 +50,7 @@ Fluxo principal: o cliente cria uma conta e recebe um JWT; envia sintomas ao `sy
 - Java 25 e Maven Wrapper
 - Spring Boot, Spring Web e Spring Data JPA
 - Spring Security e JWT
-- PostgreSQL
+- PostgreSQL 16 (ou Docker Desktop para o banco local isolado)
 - Ollama (modelo local)
 - JUnit e Spring Boot Test
 
@@ -93,13 +93,31 @@ As rotas abaixo usam JSON. Rotas protegidas requerem `Authorization: Bearer <tok
 - [Ollama](https://ollama.com/) instalado e em execução, com um modelo baixado
 - PowerShell no Windows; em outros sistemas, use o wrapper Maven correspondente (`./mvnw`)
 
-Crie o banco `health_ai_userservice`. Baixe um modelo compatível no Ollama, por exemplo `ollama pull llama3.2:3b`.
+Baixe o modelo padrão do `ai-service` com `ollama pull qwen3.5:4b`. Para usar outro modelo, defina `OLLAMA_MODEL` ao iniciar o serviço. O modelo do Codex CLI é independente do modelo usado pela API.
+
+### Inicialização rápida no Windows
+
+Com Docker Desktop e Ollama em execução, abra um PowerShell novo na raiz do repositório:
+
+```powershell
+.\scripts\start-local.ps1
+```
+
+O script cria `.env.local` com credenciais aleatórias, se ainda não existir, e inicia um PostgreSQL isolado em `localhost:5433` com volume persistente. Depois abre três janelas para os serviços. Nesse modo, `user-service` usa `http://localhost:8083`, `symptomservice` usa `http://localhost:8081` e `ai-service` usa `http://localhost:8082`. A porta `8083` evita conflito com outro aplicativo local que use `8080`. O arquivo `.env.local` é ignorado pelo Git; preserve-o para reiniciar o mesmo banco. Aguarde a mensagem de inicialização do Spring em cada janela.
+
+Para validar o fluxo completo depois que as três janelas estiverem prontas:
+
+```powershell
+.\scripts\smoke-test.ps1
+```
+
+O teste cria uma conta temporária, faz login, consulta o perfil, solicita orientação com `qwen3.5:4b`, consulta CID-10, verifica bloqueio de acesso a outra conta e remove a conta temporária. A consulta CID depende da API externa da AlicerceLabs. Para parar os serviços, pressione `Ctrl+C` em cada janela; para parar apenas o banco local, execute `docker stop health-triage-postgres`.
 
 ### Iniciar os serviços
 
 Abra um terminal para cada módulo e configure as variáveis necessárias. O mesmo segredo JWT deve ser usado pelos três serviços.
 
-Exemplo para o `user-service` no PowerShell:
+Exemplo manual para o `user-service` no PowerShell, caso as portas padrão estejam livres:
 
 ```powershell
 $env:JWT_SECRET = '<segredo-aleatorio-com-pelo-menos-32-bytes>'
@@ -121,12 +139,12 @@ cd symptomservice
 ```powershell
 $env:JWT_SECRET = '<o-mesmo-segredo-forte>'
 $env:OLLAMA_BASE_URL = 'http://localhost:11434'
-$env:OLLAMA_MODEL = 'llama3.2:3b'
+$env:OLLAMA_MODEL = 'qwen3.5:4b'
 cd ai-service
 .\mvnw.cmd spring-boot:run
 ```
 
-Consulte os arquivos `application.properties` de cada módulo para outras variáveis opcionais, como origens CORS, endereço dos serviços e configuração SMTP. Não coloque segredos reais no código, no README ou em commits.
+Se `8080` estiver ocupada, defina `$env:SERVER_PORT = '8083'` no `user-service` e `$env:USER_SERVICE_URL = 'http://localhost:8083'` no `symptomservice`. Consulte os arquivos `application.properties` de cada módulo para outras variáveis opcionais, como origens CORS, endereço dos serviços e configuração SMTP. Não coloque segredos reais no código, no README ou em commits.
 
 ## Exemplos de uso
 
@@ -201,7 +219,7 @@ cd ..\ai-service
 .\mvnw.cmd test
 ```
 
-Os testes automatizados cobrem inicialização dos módulos e, no `user-service`, fluxos de cadastro, login, acesso ao perfil próprio, bloqueio de acesso a outra conta e alteração de senha. A execução automatizada não substitui testes de integração com PostgreSQL, Ollama, SMTP e a API CID externa.
+Os testes Maven cobrem inicialização dos módulos e, no `user-service`, fluxos de cadastro, login, acesso ao perfil próprio, bloqueio de acesso a outra conta e alteração de senha. O teste `scripts/smoke-test.ps1` cobre o fluxo real com PostgreSQL, Ollama e a consulta CID externa. O envio SMTP e a recuperação de senha por e-mail não foram validados em um servidor de e-mail real.
 
 ## Estrutura do repositório
 
@@ -210,6 +228,7 @@ Os testes automatizados cobrem inicialização dos módulos e, no `user-service`
 ├── user-service/       # identidade, autenticação e contas
 ├── symptomservice/     # entrada e coordenação dos sintomas
 ├── ai-service/         # orientação preliminar e consulta CID-10
+├── scripts/            # inicialização local e teste de ponta a ponta
 ├── README.md
 └── .gitignore
 ```
@@ -217,7 +236,7 @@ Os testes automatizados cobrem inicialização dos módulos e, no `user-service`
 ## Melhorias futuras
 
 - Adicionar documentação OpenAPI/Swagger e coleção de chamadas de exemplo.
-- Criar ambiente local reproduzível com Docker Compose.
+- Adicionar Docker Compose para orquestrar os três serviços além do banco local.
 - Adotar rate limiting distribuído e observabilidade sem registrar dados clínicos.
 - Expandir testes de integração e contratos entre serviços.
 - Implementar provedores externos opcionais após definir salvaguardas para dados sensíveis.
